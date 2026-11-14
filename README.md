@@ -198,7 +198,7 @@ A pasta `assets/rom_extracted/` (criada por `tools/extract_rom.sh`, só usada no
 Em todas, primeiro clone o repositório:
 
 ```bash
-git clone <url-do-repositório> cruisn-usa-arcade-port-cpp && cd cruisn-usa-arcade-port-cpp
+git clone https://github.com/marciocorbolan/cruisn-usa-arcade-port-cpp.git && cd cruisn-usa-arcade-port-cpp
 ```
 
 | Quero... | Use | Onde vai a ROM |
@@ -761,12 +761,12 @@ Medido nos registros das sessões do Claude Code guardados nesta máquina (atual
 | Métrica | Valor |
 |---|---|
 | Sessões registradas | 5 (com várias compactações de contexto) |
-| Respostas do modelo | ~2.960 |
-| Tokens de saída (gerados) | ~2,62 milhões |
-| Tokens lidos do cache de contexto | ~584 milhões |
+| Respostas do modelo | ~2.990 |
+| Tokens de saída (gerados) | ~2,64 milhões |
+| Tokens lidos do cache de contexto | ~594 milhões |
 | Tokens gravados no cache | ~6,6 milhões |
 | Tempo de relógio (soma das sessões) | ~35 h |
-| Tempo ativo (sem pausas > 30 min) | ~28 h |
+| Tempo ativo (sem pausas > 30 min) | ~29 h |
 
 Os números somam a medição anterior (3 sessões, cujos registros mais antigos já foram apagados desta máquina)
 com tudo o que veio depois dela. Os registros das primeiras sessões do projeto não existiam mais nem na
