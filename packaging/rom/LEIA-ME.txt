@@ -1,0 +1,7 @@
+Coloque aqui o .zip da ROM (set MAME "crusnusa", versão L4.1). O nome do arquivo não importa e não é
+preciso descompactar. São usados: cusa-l41.u10-u13 (programa), cusa.u14-u29 (gráficos) e cusa.u2-u9 (som).
+Só a versão L4.1 funciona: o jogo confere cada chip ao abrir e avisa se algum for diferente. Com o programa
+de outra versão (ex.: cusa-l4.u10), ele avisa e pergunta: "Sair" (padrão) ou "Continuar mesmo assim", só
+para testes (o jogo pode mostrar telas erradas ou travar).
+Se a ROM tiver mais de uma versão do programa (ex.: um .zip "merged" com L4.1 e L2.1), o jogo abre um
+menu para escolher; Enter escolhe a 4.1. Outra versão costuma travar: após 10 s sem resposta o jogo avisa e fecha.

@@ -1,0 +1,32 @@
+REA Cruis'n — licenças
+======================
+
+Este programa
+  O código do REA Cruis'n está sob a GNU GPL v3 (arquivo LICENSE, nesta pasta). A licença vale só para o
+  código escrito no projeto; não cobre o jogo original, suas marcas nem os dados da ROM.
+  Código-fonte: https://github.com/marciocorbolan/cruisn-usa-arcade-port-cpp
+
+Componentes de terceiros que vão dentro deste pacote
+  Cada pacote leva só os componentes da sua plataforma; os textos completos das licenças estão em licencas/.
+
+  Linux (rea_cruisn)
+    - libstdc++ e libgcc (GCC), ligadas dentro do executável: GPL v3 com a GCC Runtime Library Exception 3.1
+      (licencas/gcc-runtime-exception.txt), que permite distribuir o programa compilado sem outras exigências.
+    - A SDL2 e a glibc não vão no pacote: são as do próprio sistema.
+
+  Windows (rea_cruisn.exe e SDL2.dll)
+    - SDL2 2.30.9 (SDL2.dll): licença zlib (licencas/SDL2.txt).
+    - Runtime do MinGW-w64 (CRT e winpthreads), ligado dentro do .exe: ZPL 2.1, MIT e outras licenças
+      permissivas, listadas por arquivo em licencas/mingw-w64.txt.
+    - libstdc++ e libgcc (GCC), ligadas dentro do .exe: GPL v3 com a GCC Runtime Library Exception 3.1
+      (licencas/gcc-runtime-exception.txt).
+
+  Navegador (index.html, index.js, index.wasm, index.data)
+    - Runtime do Emscripten 3.1.74 (index.js e partes do index.wasm): MIT ou University of Illinois/NCSA
+      (licencas/emscripten.txt).
+    - musl libc, dentro do index.wasm: MIT (licencas/musl.txt).
+    - libc++, libc++abi e compiler-rt (LLVM), dentro do index.wasm: Apache 2.0 com as exceções do LLVM
+      (licencas/llvm-libcxx.txt).
+    - SDL2 2.30.9 (porte do Emscripten), dentro do index.wasm e do index.js: licença zlib (licencas/SDL2.txt).
+
+Nenhum arquivo deste pacote contém dados da ROM do jogo.
