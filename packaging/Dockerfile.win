@@ -1,0 +1,35 @@
+# Imagem para compilar a versão Windows (x86_64) por compilação cruzada, sem precisar de um Windows:
+# MinGW-w64 (GCC, modelo de threads POSIX: std::thread da corrotina da CPU) + SDL2 oficial para MinGW.
+# O Wine roda o executável e os testes aqui mesmo, sem janela, para conferência; o teste final é num Windows.
+FROM ubuntu:24.04
+
+ARG UID=1000
+ARG GID=1000
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        g++-mingw-w64-x86-64-posix cmake ninja-build ca-certificates curl wine wine64 \
+        libgl1 libgl1-mesa-dri libxrandr2 libxi6 libxcursor1 libxinerama1 libxcomposite1 libxext6 libxrender1 \
+    && rm -rf /var/lib/apt/lists/*
+# (as bibliotecas do X e do OpenGL são carregadas pelo Wine sob demanda: janela e Direct3D no serviço win-game)
+
+# SDL2 para MinGW (cabeçalhos, bibliotecas de importação, SDL2.dll e a configuração do CMake), versão fixa.
+ARG SDL2_VERSION=2.30.9
+ARG SDL2_SHA256=b188d165dc4a0372042bff3d0c18e9bb90772581e92a7b8b47b521b47714f75c
+RUN curl -fsSL -o /tmp/sdl2.tgz \
+        https://github.com/libsdl-org/SDL/releases/download/release-${SDL2_VERSION}/SDL2-devel-${SDL2_VERSION}-mingw.tar.gz \
+    && echo "${SDL2_SHA256}  /tmp/sdl2.tgz" | sha256sum -c - \
+    && mkdir -p /opt/sdl2-mingw \
+    && tar xzf /tmp/sdl2.tgz -C /opt/sdl2-mingw --strip-components=2 SDL2-${SDL2_VERSION}/x86_64-w64-mingw32 \
+    && rm /tmp/sdl2.tgz
+
+RUN userdel -r ubuntu 2>/dev/null || true; \
+    groupadd -g ${GID} dev 2>/dev/null || true; \
+    useradd -m -u ${UID} -g ${GID} -s /bin/bash dev
+
+USER dev
+# Prefixo do Wine criado uma vez na imagem (a primeira execução levaria ~30 s); sem mensagens de depuração.
+ENV WINEDEBUG=-all WINEPREFIX=/home/dev/.wine
+RUN wineboot --init 2>/dev/null; wineserver -w
+WORKDIR /workspace
+CMD ["bash"]

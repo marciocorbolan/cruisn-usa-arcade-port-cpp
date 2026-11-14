@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>REA Cruis'n</title>
+<!--
+  Página do port para navegador (Emscripten). A ROM não vai junto: o usuário escolhe o .zip dele,
+  que é copiado para /rea/rom (memória da página). Opcionalmente o .zip fica guardado no
+  IndexedDB do próprio navegador (/rea/guardada), e a CMOS (save/cmos.nv) sempre fica (/rea/save).
+-->
+<style>
+  :root { --fundo:#101216; --painel:#1b1e25; --texto:#e6e6e6; --fraco:#9aa0aa; --destaque:#f2b632; --erro:#ff6b6b; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--fundo); color:var(--texto); font:15px/1.5 system-ui, sans-serif; }
+  main { max-width:1060px; margin:0 auto; padding:16px; }
+  h1 { font-size:20px; margin:0 0 12px; }
+  .painel { background:var(--painel); border-radius:8px; padding:16px; margin-bottom:16px; }
+  .linha { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin:8px 0; }
+  button { background:var(--destaque); color:#111; border:0; border-radius:6px; padding:8px 16px; font-weight:600; cursor:pointer; }
+  button.secundario { background:#3a3f4a; color:var(--texto); }
+  button:disabled { opacity:.45; cursor:default; }
+  #estado { color:var(--fraco); }
+  #estado.erro { color:var(--erro); }
+  #canvas { display:none; margin:0 auto 16px; width:min(100%, calc((100vh - 32px) * 512 / 400)); aspect-ratio:512/400; background:#000; image-rendering:pixelated; outline:none; }
+  details pre { max-height:240px; overflow:auto; background:#0b0c0f; padding:8px; font-size:12px; white-space:pre-wrap; }
+  table { border-collapse:collapse; font-size:14px; }
+  td { padding:2px 12px 2px 0; vertical-align:top; }
+  td:nth-child(odd) { color:var(--destaque); white-space:nowrap; }
+  small { color:var(--fraco); }
+</style>
+</head>
+<body>
+<main>
+  <h1>REA Cruis'n — versão para navegador</h1>
+
+  <div class="painel" id="inicio">
+    <p>Escolha o <b>.zip da sua ROM</b> (set MAME "crusnusa", versão L4.1; qualquer nome de arquivo).
+      O arquivo é lido só por esta página, no seu computador: nada é enviado a um servidor.</p>
+    <div class="linha">
+      <input type="file" id="arquivos" accept=".zip" multiple disabled>
+    </div>
+    <div class="linha">
+      <label><input type="checkbox" id="lembrar" checked> Guardar a ROM neste navegador (não precisa escolher de novo)</label>
+    </div>
+    <div class="linha">
+      <button id="iniciar" disabled>Iniciar</button>
+      <button id="esquecer" class="secundario" disabled>Apagar a ROM guardada</button>
+      <span id="estado">Carregando…</span>
+    </div>
+    <small>Com mais de um .zip (ex.: o da L4.1 e o de outra versão), selecione todos juntos.
+      A CMOS (ajustes, auditorias, recordes e calibração) fica guardada neste navegador.</small>
+  </div>
+
+  <!-- O SDL2 do Emscripten desenha no elemento #canvas. -->
+  <canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
+
+  <div class="painel">
+    <table>
+      <tr><td>← / →</td><td>volante</td><td>↑ / ↓</td><td>acelerador / freio</td></tr>
+      <tr><td>1–4, 0</td><td>marchas 1–4 / neutro</td><td>5, 6, 7, 8</td><td>fichas 1–4</td></tr>
+      <tr><td>Enter</td><td>start</td><td>F1, F3, F4</td><td>vistas 1–3</td></tr>
+      <tr><td>F2</td><td>chave de teste (menu de serviço e ENTER dele)</td><td>9</td><td>serviço (no menu: volta)</td></tr>
+      <tr><td>R / T</td><td>rádio / slam tilt</td><td>+ / −</td><td>volume (no menu: cursor e valores)</td></tr>
+      <tr><td>F11</td><td>tela cheia (Esc sai dela)</td><td>Controle</td><td>analógico = volante, gatilhos = pedais</td></tr>
+    </table>
+    <small>Na primeira vez o jogo pede a calibração dos controles: F2 em cada tela (centro, volante à esquerda,
+      à direita, acelerador no fundo). Clique na tela do jogo se as teclas não responderem.</small>
+  </div>
+
+  <details class="painel"><summary>Console</summary><pre id="console"></pre></details>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const estado = (texto, erro) => { $('estado').textContent = texto; $('estado').className = erro ? 'erro' : ''; };
+  const consoleEl = $('console');
+  const escreve = (texto) => { consoleEl.textContent += texto + '\n'; consoleEl.scrollTop = consoleEl.scrollHeight; };
+
+  const GUARDADA = '/rea/guardada';  // IndexedDB: .zip guardados
+  const ROM = '/rea/rom';            // memória: .zip usados nesta execução
+  let sincronizando = false, pendente = false;
+
+  /** Grava as pastas IDBFS no IndexedDB (uma de cada vez; pedidos no meio são juntados). */
+  function sincroniza() {
+    if (sincronizando) { pendente = true; return; }
+    sincronizando = true;
+    FS.syncfs(false, (err) => {
+      sincronizando = false;
+      if (err) escreve('Aviso: falha ao guardar no navegador: ' + err);
+      if (pendente) { pendente = false; sincroniza(); }
+    });
+  }
+
+  const zipsEm = (pasta) => FS.readdir(pasta).filter((n) => n.toLowerCase().endsWith('.zip'));
+
+  function atualizaGuardada() {
+    const nomes = zipsEm(GUARDADA);
+    const escolhidos = Array.from($('arquivos').files).map((f) => f.name);
+    $('esquecer').disabled = nomes.length === 0;
+    $('iniciar').disabled = nomes.length === 0 && escolhidos.length === 0;
+    estado(escolhidos.length ? 'Escolhido: ' + escolhidos.join(', ') + '. Clique em Iniciar.'
+         : nomes.length ? 'ROM guardada: ' + nomes.join(', ') + '. Clique em Iniciar ou escolha outra.'
+         : 'Escolha o .zip da ROM.');
+  }
+
+  var Module = {
+    canvas: $('canvas'),
+    print: escreve,
+    printErr: escreve,
+    reaSyncSave: sincroniza,
+    preRun: [() => {
+      for (const p of ['/rea', '/rea/rom', '/rea/save', GUARDADA,
+                       '/rea/assets/textures', '/rea/assets/audio', '/rea/assets/config'])
+        try { FS.mkdirTree(p); } catch (e) {}
+      FS.mount(IDBFS, {}, '/rea/save');
+      FS.mount(IDBFS, {}, GUARDADA);
+      addRunDependency('idbfs');
+      FS.syncfs(true, (err) => {
+        if (err) escreve('Aviso: armazenamento do navegador indisponível: ' + err);
+        removeRunDependency('idbfs');
+      });
+    }],
+    onRuntimeInitialized: () => {
+      $('arquivos').disabled = false;
+      atualizaGuardada();
+    },
+    // Chamado pelo main() do jogo quando ele termina (ROM recusada, erro…).
+    reaExit: (codigo) => {
+      sincroniza();
+      $('canvas').style.display = 'none';
+      $('inicio').style.display = '';
+      $('arquivos').disabled = $('iniciar').disabled = $('esquecer').disabled = true;
+      estado('Jogo encerrado (código ' + codigo + '). Recarregue a página para jogar de novo.', codigo !== 0);
+    },
+  };
+
+  $('arquivos').addEventListener('change', atualizaGuardada);
+
+  $('esquecer').addEventListener('click', () => {
+    for (const n of zipsEm(GUARDADA)) FS.unlink(GUARDADA + '/' + n);
+    sincroniza();
+    atualizaGuardada();
+  });
+
+  $('iniciar').addEventListener('click', async () => {
+    $('iniciar').disabled = $('esquecer').disabled = $('arquivos').disabled = true;
+    const escolhidos = Array.from($('arquivos').files);
+    try {
+      if (escolhidos.length) {
+        estado('Lendo a ROM…');
+        const lembrar = $('lembrar').checked;
+        for (const n of zipsEm(GUARDADA)) FS.unlink(GUARDADA + '/' + n);  // a guardada é trocada pela escolhida
+        for (const f of escolhidos) {
+          const dados = new Uint8Array(await f.arrayBuffer());
+          FS.writeFile(ROM + '/' + f.name, dados);
+          if (lembrar) FS.writeFile(GUARDADA + '/' + f.name, dados);
+        }
+        sincroniza();
+      } else {
+        for (const n of zipsEm(GUARDADA)) FS.writeFile(ROM + '/' + n, FS.readFile(GUARDADA + '/' + n));
+      }
+    } catch (e) {
+      estado('Falha ao ler a ROM: ' + e, true);
+      $('arquivos').disabled = false;
+      atualizaGuardada();
+      return;
+    }
+    $('inicio').style.display = 'none';
+    $('canvas').style.display = 'block';
+    $('canvas').focus();
+    $('canvas').scrollIntoView({ block: 'start' });
+    // O jogo roda dentro de callMain (o ASYNCIFY devolve o controle à página a cada quadro).
+    setTimeout(() => Module.callMain(['--root', '/rea']), 0);
+  });
+
+  window.addEventListener('error', (e) => estado('Erro: ' + e.message, true));
+  $('canvas').addEventListener('click', () => $('canvas').focus());
+</script>
+{{{ SCRIPT }}}
+</body>
+</html>
