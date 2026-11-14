@@ -1,0 +1,12 @@
+# ROM original (direitos autorais) e dados derivados dela
+rom/*
+!rom/.gitkeep
+assets/rom_extracted/
+# Build
+build/
+build-*/
+# Saves / NVRAM
+save/*
+!save/.gitkeep
+# Python
+__pycache__/

@@ -1,0 +1,101 @@
+services:
+  # Compilação, testes e regressão: só a pasta do projeto, sem dispositivos nem sockets do host.
+  # Funciona em qualquer host com Docker (VM sem GPU, servidor, WSL).
+  dev:
+    build:
+      context: .
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    image: rea-cruisn:dev
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    stdin_open: true
+    tty: true
+
+  # Jogo com janela e som: o mesmo container, mais vídeo (X11/Wayland, GPU) e áudio do hospedeiro Linux.
+  #   docker compose run --rm game build/bin/rea_cruisn
+  game:
+    extends:
+      service: dev
+    volumes:
+      # Vídeo: X11/XWayland e Wayland do hospedeiro
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+      - ${XDG_RUNTIME_DIR:-/run/user/1000}/${WAYLAND_DISPLAY:-wayland-0}:/run/user/host/${WAYLAND_DISPLAY:-wayland-0}
+      # Áudio: PulseAudio / PipeWire-Pulse do hospedeiro
+      - ${XDG_RUNTIME_DIR:-/run/user/1000}/pulse:/run/user/host/pulse
+    environment:
+      DISPLAY: ${DISPLAY:-:0}
+      WAYLAND_DISPLAY: ${WAYLAND_DISPLAY:-wayland-0}
+      XDG_RUNTIME_DIR: /run/user/host
+      PULSE_SERVER: unix:/run/user/host/pulse/native
+      SDL_AUDIODRIVER: pulseaudio
+    devices:
+      - /dev/dri:/dev/dri  # aceleração de vídeo; sem GPU exposta, remova esta linha (o SDL usa render por software)
+
+  # Pacote Linux distribuível (pasta pronta / .zip) compilado no Ubuntu 22.04, para rodar em distribuições mais antigas.
+  #   docker compose run --rm -T linux bash -lc 'cmake -S . -B build-linux -G Ninja -DCMAKE_BUILD_TYPE=Release &&
+  #     cmake --build build-linux && cmake --install build-linux --prefix build-linux/dist && (cd build-linux && cpack)'
+  linux:
+    build:
+      context: .
+      dockerfile: packaging/Dockerfile.linux
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    image: rea-cruisn:linux
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+
+  # Versão Windows por compilação cruzada (MinGW-w64 + SDL2 para MinGW; Wine para conferir sem um Windows).
+  #   docker compose run --rm -T win bash -lc 'cmake -S . -B build-win -G Ninja -DCMAKE_BUILD_TYPE=Release
+  #     -DCMAKE_TOOLCHAIN_FILE=cmake/mingw-w64-x86_64.cmake && cmake --build build-win &&
+  #     cmake --install build-win --prefix build-win/dist && (cd build-win && cpack)'
+  win:
+    build:
+      context: .
+      dockerfile: packaging/Dockerfile.win
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    image: rea-cruisn:win
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+
+  # Versão Windows rodando no Wine com janela e som do hospedeiro (como o serviço "game"):
+  #   docker compose run --rm win-game wine build-win/dist/rea_cruisn.exe
+  win-game:
+    extends:
+      service: win
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+      # O Wine só fala X11: a credencial do X (no Wayland, a do XWayland, cujo nome muda a cada login)
+      - ${XAUTHORITY:-/dev/null}:/run/user/host/Xauthority:ro
+      - ${XDG_RUNTIME_DIR:-/run/user/1000}/pulse:/run/user/host/pulse
+    environment:
+      DISPLAY: ${DISPLAY:-:0}
+      XAUTHORITY: /run/user/host/Xauthority
+      XDG_RUNTIME_DIR: /run/user/host
+      PULSE_SERVER: unix:/run/user/host/pulse/native
+      LANG: C.UTF-8  # acentos certos nas mensagens que o Wine repassa ao terminal
+    devices:
+      - /dev/dri:/dev/dri  # aceleração de vídeo; sem GPU exposta, remova esta linha
+
+  # Versão para navegador (Emscripten). Compila em build-web/ e serve a página em http://localhost:8080:
+  #   docker compose run --rm -T web bash -lc 'emcmake cmake -S . -B build-web -DCMAKE_BUILD_TYPE=Release &&
+  #     cmake --build build-web && cmake --install build-web --prefix build-web/dist && (cd build-web && cpack)'
+  #   docker compose run --rm --service-ports web python3 -m http.server 8080 -d build-web/dist
+  web:
+    image: emscripten/emsdk:3.1.74
+    user: "${UID:-1000}:${GID:-1000}"
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    environment:
+      EM_CACHE: /workspace/build-web/.emcache  # bibliotecas do Emscripten (SDL2) compiladas uma vez, com permissão de escrita
+      HOME: /tmp
+    ports:
+      - "127.0.0.1:8080:8080"  # só nesta máquina
