@@ -1,0 +1,13 @@
+# Fim de linha LF em todos os textos, também num clone no Windows: os scripts (.sh, .py) rodam no
+# container Linux e quebram com CRLF ("bad interpreter").
+* text=auto eol=lf
+
+# Binários: sem conversão nem diff de texto.
+*.png binary
+*.bmp binary
+*.ppm binary
+*.wav binary
+*.zip binary
+*.bin binary
+*.nv binary
+*.wasm binary

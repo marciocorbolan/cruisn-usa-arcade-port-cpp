@@ -1,0 +1,6 @@
+rom/
+build/
+build-*/
+assets/rom_extracted/
+save/
+.git/
