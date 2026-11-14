@@ -1,0 +1,20 @@
+# Imagem só para gerar o pacote distribuível (cmake --install / cpack).
+# Base Ubuntu 22.04 de propósito: o executável herda a glibc e a libstdc++ do sistema em que é compilado, e
+# compilado aqui ele roda no Ubuntu 22.04+, Debian 12+, Fedora 36+ e equivalentes. Compilado na imagem de
+# desenvolvimento (Ubuntu 24.04) ele exigiria glibc 2.38 e só rodaria em distribuições de 2023 em diante.
+FROM ubuntu:22.04
+
+ARG UID=1000
+ARG GID=1000
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential cmake ninja-build pkg-config libsdl2-dev ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd -g ${GID} dev 2>/dev/null || true; \
+    useradd -m -u ${UID} -g ${GID} -s /bin/bash dev
+
+USER dev
+WORKDIR /workspace
+CMD ["bash"]

@@ -1,0 +1,38 @@
+REA Cruis'n — pasta pronta para rodar
+=====================================
+
+Conteúdo
+  rea_cruisn (rea_cruisn.exe no Windows)  o jogo
+  rom/       coloque aqui o .zip da sua ROM (set MAME "crusnusa", versão L4.1; qualquer nome de arquivo)
+  assets/    lang/ (textos do console), textures/ e audio/ (substituições opcionais), config/
+  save/      CMOS do gabinete (ajustes, auditorias, recordes e calibração): cmos.nv
+
+Primeiro uso
+  1. Copie o .zip da ROM para rom/ (não precisa descompactar).
+  2. Rode rea_cruisn. Na primeira vez o jogo pede a calibração dos controles:
+     F2 em cada tela (centro, volante à esquerda, à direita, acelerador no fundo).
+  3. Fichas: 5. Começar: Enter. Menu de serviço: F2.
+
+Teclas
+  ← / →        volante                 ↑ / ↓      acelerador / freio
+  1–4, 0       marchas 1–4 / neutro    5, 6, 7, 8 fichas 1–4
+  Enter        start                   F1, F3, F4 vistas 1–3
+  F2           chave de teste (menu de serviço e ENTER dele)
+  9            serviço (no menu: volta)   R  rádio   T  slam tilt
+  + / −        volume (no menu: cursor e valores)    Esc  sair
+  F11 ou Alt+Enter   tela cheia (rea_cruisn --fullscreen já abre em tela cheia)
+  Controle (gamepad): analógico esquerdo = volante, gatilhos = acelerador/freio,
+           X/Y/B = vistas 1–3, A = rádio, RB/LB ou D-pad ↑/↓ = troca de marcha,
+           Start = start, Back = ficha. Pode ser ligado com o jogo aberto.
+           Volantes e controles não reconhecidos: mapeie em assets/config/gamecontrollerdb.txt
+           (formato do SDL_GameControllerDB).
+
+Os recursos (imagens, sons, textos) são lidos da ROM durante a execução.
+A pasta é procurada a partir do executável; para usar outra: rea_cruisn --root CAMINHO
+(ou a variável de ambiente REA_ROOT). Linux: requer a biblioteca SDL2 (libsdl2-2.0-0) e roda no
+Ubuntu 22.04 ou mais novo, Debian 12, Fedora 36 e equivalentes (glibc 2.34+).
+Windows: 64 bits; a SDL2.dll vai junto do rea_cruisn.exe. Para ver as mensagens do jogo (depuração),
+abra pelo Prompt de Comando com:  rea_cruisn.exe --console
+
+Licenças: LICENSE (GPL v3, o código do projeto) e LICENCAS-TERCEIROS.txt (bibliotecas que vão junto; textos
+completos em licencas/). Código-fonte: https://github.com/marciocorbolan/cruisn-usa-arcade-port-cpp

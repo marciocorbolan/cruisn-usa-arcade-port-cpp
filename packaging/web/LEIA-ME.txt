@@ -1,0 +1,23 @@
+REA Cruis'n — versão para navegador
+===================================
+
+Conteúdo
+  index.html, index.js, index.wasm   o jogo (WebAssembly)
+  index.data                         textos do console (assets/lang)
+
+Como usar
+  1. Sirva esta pasta com qualquer servidor HTTP estático; aberta direto do disco (file://) a página
+     não carrega. Exemplo:  python3 -m http.server 8080 --bind 127.0.0.1   e abra http://localhost:8080
+     (o --bind 127.0.0.1 deixa a página visível só neste computador, não na rede local)
+  2. Na página, escolha o .zip da sua ROM (set MAME "crusnusa", versão L4.1) e clique em Iniciar.
+     O arquivo é lido só pela página, no seu computador; nada é enviado ao servidor.
+  3. Fichas: 5. Começar: Enter. Menu de serviço: F2. As teclas estão listadas na página.
+  Ao trocar estes arquivos por uma versão nova, recarregue a página com Ctrl+Shift+R (ou Ctrl+F5):
+  um recarregamento normal pode continuar usando os arquivos antigos guardados pelo navegador.
+
+A ROM não vem junto e não pode ser colocada no servidor: cada usuário escolhe a sua.
+A CMOS (ajustes, auditorias, recordes e calibração) e, se marcado, o .zip ficam guardados no
+armazenamento do próprio navegador (IndexedDB). Testado no Chrome e no Firefox, em computador.
+
+Licenças: LICENSE (GPL v3, o código do projeto) e LICENCAS-TERCEIROS.txt (bibliotecas que vão junto; textos
+completos em licencas/). Código-fonte: https://github.com/marciocorbolan/cruisn-usa-arcade-port-cpp
