@@ -4,9 +4,10 @@ Estudo de **Engenharia Reversa**: um agente de IA traduziu o código de máquina
 *Cruis'n USA* (Midway, 1994 — V-Unit, CPU TMS320C31) para **C++17 modular e testado**, executado nativamente com
 **SDL2**.
 
-![O port rodando no navegador: largada em Golden Gate Park](docs/images/port_web.png)
+![À esquerda o jogo rodando; à direita a função C++ traduzida que desenha o conta-giros](docs/images/port_codigo.png)
 
-*O port rodando no navegador (versão Web, [seção 3.7](#37-web-navegador)): largada em Golden Gate Park.*
+*À esquerda, o jogo rodando nativo no Linux, sem emulador; à direita, a função C++ que desenha o conta-giros
+destacado, traduzida da rotina `0x9E22` da ROM (`src/core/game/race_hud.cpp`).*
 
 ### Tradução estática vs. emulação
 
@@ -377,6 +378,10 @@ docker compose run --rm --service-ports web python3 -m http.server 8080 -d build
 python3 -m http.server 8080 --bind 127.0.0.1 -d build-web/dist
 # 3. abra http://localhost:8080 no navegador, escolha o .zip da ROM e clique em Iniciar
 ```
+
+![O port rodando no navegador: largada em Golden Gate Park](docs/images/port_web.png)
+
+*A versão Web no Chrome: o jogo, a ajuda dos controles e o console.*
 
 Depois de recompilar, recarregue a página com **Ctrl+Shift+R** (ou Ctrl+F5): o servidor simples do Python não
 manda cabeçalhos de cache, e o navegador pode continuar usando o `index.js`/`index.wasm` antigos num
@@ -819,7 +824,7 @@ cruisn-usa-arcade-port-cpp/
 │   └── config/             # opcional: gamecontrollerdb.txt (mapeamento de volantes e controles)
 ├── docs/
 │   ├── architecture.md     # notas de engenharia reversa: hardware, RAM, rotinas traduzidas
-│   ├── images/             # imagens do README (port_web.png)
+│   ├── images/             # imagens do README (port_codigo.png, port_web.png)
 │   ├── prompt_01_ambiente.md # prompt do agente: ambiente
 │   └── prompt_02_traducao.md # prompt do agente: tradução fiel
 ├── src/
